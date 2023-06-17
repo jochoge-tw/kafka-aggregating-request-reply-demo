@@ -1,0 +1,68 @@
+{
+	"info": {
+		"_postman_id": "c90fadd3-4148-4338-b190-7a5c93812af7",
+		"name": "Request-Reply",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "25713364"
+	},
+	"item": [
+		{
+			"name": "Greetings API",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"greeting\": \"Hello\",\n    \"recipient\": {\n        \"name\": \"Jane\"\n    },\n    \"language\": \"en-GB\",\n    \"timestamp\": \"2023-06-17T14:11:00.000000Z\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:9000/v1/greetings",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9000",
+					"path": [
+						"v1",
+						"greetings"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Gifts API",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"type\": \"Cookies\",\n    \"recipient\": {\n        \"name\": \"Jane\"\n    },\n    \"quantity\": 3\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:9000/v1/gifts",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "9000",
+					"path": [
+						"v1",
+						"gifts"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
