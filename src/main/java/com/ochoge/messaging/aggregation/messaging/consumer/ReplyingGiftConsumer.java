@@ -1,9 +1,10 @@
 package com.ochoge.messaging.aggregation.messaging.consumer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ochoge.messaging.aggregation.domain.Gift;
 import com.ochoge.messaging.aggregation.domain.ReciprocalGift;
+import com.ochoge.messaging.aggregation.messaging.CustomHeaders;
 import com.ochoge.messaging.aggregation.utils.MessageUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -39,10 +40,11 @@ public class ReplyingGiftConsumer {
 
     private ProducerRecord<String, Object> createProducerRecord(ReciprocalGift reciprocalGift, ConsumerRecord<String, Object> consumerRecord) {
         ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(ReciprocalGift.TOPIC, reciprocalGift);
-        MessageUtils.getHeaderValues(consumerRecord, KafkaHeaders.CORRELATION_ID).forEach(headerValue -> producerRecord.headers().add(KafkaHeaders.CORRELATION_ID, headerValue));
+        MessageUtils.getHeaderValues(consumerRecord.headers(), KafkaHeaders.CORRELATION_ID).forEach(headerValue -> producerRecord.headers().add(KafkaHeaders.CORRELATION_ID, headerValue));
         producerRecord.headers().add(KafkaHeaders.KEY, MessageUtils.getHashBasedUuidFor(reciprocalGift).getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add(KafkaHeaders.TIMESTAMP, String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8));
         producerRecord.headers().add(KafkaHeaders.TOPIC, ReciprocalGift.TOPIC.getBytes(StandardCharsets.UTF_8));
+        MessageUtils.getHeaderValue(consumerRecord.headers(), CustomHeaders.EXPECTED_REPLIES_COUNT).ifPresent(headerValue -> producerRecord.headers().add(CustomHeaders.EXPECTED_REPLIES_COUNT, headerValue));
         return producerRecord;
     }
 }

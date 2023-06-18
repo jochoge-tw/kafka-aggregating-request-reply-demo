@@ -1,6 +1,7 @@
 package com.ochoge.messaging.aggregation.messaging.publisher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ochoge.messaging.aggregation.messaging.CustomHeaders;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -27,12 +27,13 @@ public class DefaultRequestReplyMessagePublisher implements RequestReplyMessageP
     @SneakyThrows
     @Override
     public <S, T> List<T> publishWithReply(S requestPayload, RequestReplyMessageParameters<S, T> messageParameters) {
+        List<T> replies;
         String requestTopic = messageParameters.getRequestTopic();
         ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(requestTopic, requestPayload);
-        Map<String, String> requestHeaders = messageParameters.toMessageHeaders(requestPayload);
-        requestHeaders.forEach((key, value) -> producerRecord.headers().add(key, value.getBytes(StandardCharsets.UTF_8)));
+        messageParameters.toMessageHeaders(requestPayload).forEach((key, value) -> producerRecord.headers().add(key, value.getBytes(StandardCharsets.UTF_8)));
+        producerRecord.headers().add(CustomHeaders.EXPECTED_REPLIES_COUNT, String.valueOf(messageParameters.getReplyExpectedCount()).getBytes(StandardCharsets.UTF_8));
 
-        log.info("Sending request {} with headers: {}", requestPayload, requestHeaders);
+        log.info("Sending request {} with headers: {}", requestPayload, producerRecord.headers());
         RequestReplyFuture<String, Object, Collection<ConsumerRecord<String, Object>>> replyFuture = kafkaTemplate.sendAndReceive(producerRecord);
 
         SendResult<String, Object> sendResult =
@@ -40,10 +41,11 @@ public class DefaultRequestReplyMessagePublisher implements RequestReplyMessageP
         log.info("Request sent with metadata {} ... awaiting reply", sendResult.getRecordMetadata());
 
         ConsumerRecord<String, Collection<ConsumerRecord<String, Object>>> consumerRecords = replyFuture.get(messageParameters.getReplyTimeout().toMillis(), TimeUnit.MILLISECONDS);
-        List<T> replies = consumerRecords.value().stream()
+        replies = consumerRecords.value().stream()
                 .map(consumerRecord -> this.parseRecord(consumerRecord, messageParameters.getReplyTypeReference()))
                 .toList();
         log.info("Received replies {}", replies);
+
         return replies;
     }
 

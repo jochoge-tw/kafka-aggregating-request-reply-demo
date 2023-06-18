@@ -1,26 +1,41 @@
 package com.ochoge.messaging.aggregation.utils;
 
 import lombok.experimental.UtilityClass;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.StreamSupport;
-import org.apache.kafka.common.header.Header;
 
 @UtilityClass
 public class MessageUtils {
 
-    public static <K, V> List<byte[]> getHeaderValues(ConsumerRecord<K, V> consumerRecord, String headerKey) {
-        return StreamSupport.stream(consumerRecord.headers().headers(headerKey).spliterator(), false)
+    public static List<byte[]> getHeaderValues(Headers headers, String headerKey) {
+        return StreamSupport.stream(headers.headers(headerKey).spliterator(), false)
                 .map(Header::value)
                 .toList();
     }
 
-    public static <K, V> Optional<byte[]> getHeaderValue(ConsumerRecord<K, V> consumerRecord, String headerKey) {
-        return getHeaderValues(consumerRecord, headerKey).stream().findFirst();
+    public static Optional<byte[]> getHeaderValue(Headers headers, String headerKey) {
+        return getHeaderValues(headers, headerKey).stream().findFirst();
+    }
+
+    public static <T> List<T> getHeaderValues(Headers headers, String headerKey, Function<String, T> transformer) {
+        return getHeaderValues(headers, headerKey)
+                .stream()
+                .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
+                .map(transformer)
+                .toList();
+    }
+
+    public static <T> Optional<T> getHeaderValue(Headers headers, String headerKey, Function<String, T> transformer) {
+        return getHeaderValue(headers, headerKey)
+                .map(bytes -> new String(bytes, StandardCharsets.UTF_8))
+                .map(transformer);
     }
 
     public static <T> String getNameUuidFor(T object) {

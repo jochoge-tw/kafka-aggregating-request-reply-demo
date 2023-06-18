@@ -2,6 +2,7 @@ package com.ochoge.messaging.aggregation.messaging.consumer;
 
 import com.ochoge.messaging.aggregation.domain.Greeting;
 import com.ochoge.messaging.aggregation.domain.GreetingReply;
+import com.ochoge.messaging.aggregation.messaging.CustomHeaders;
 import com.ochoge.messaging.aggregation.utils.MessageUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -33,16 +34,17 @@ public class ReplyingGreetingsConsumer {
         log.info("Received message {}", rawGreeting);
         Greeting greeting = objectMapper.readValue(String.valueOf(rawGreeting), Greeting.class);
         return List.of(
-                createMessage(GreetingReply.reply("Hola, comestas", greeting), consumerRecord),
+//                createMessage(GreetingReply.reply("Hola, comestas", greeting), consumerRecord),
                 createMessage(GreetingReply.reply("Bonjour", greeting), consumerRecord));
     }
 
     private Message<GreetingReply> createMessage(GreetingReply reply, ConsumerRecord<String, Object> consumerRecord) {
         Map<String, Object> headers = new HashMap<>();
-        MessageUtils.getHeaderValues(consumerRecord, KafkaHeaders.CORRELATION_ID).forEach(headerValue -> headers.put(KafkaHeaders.CORRELATION_ID, headerValue));
+        MessageUtils.getHeaderValues(consumerRecord.headers(), KafkaHeaders.CORRELATION_ID).forEach(headerValue -> headers.put(KafkaHeaders.CORRELATION_ID, headerValue));
         headers.put(KafkaHeaders.KEY, MessageUtils.getHashBasedUuidFor(reply));
         headers.put(KafkaHeaders.TIMESTAMP, System.currentTimeMillis());
         headers.put(KafkaHeaders.TOPIC, GreetingReply.TOPIC);
+        MessageUtils.getHeaderValue(consumerRecord.headers(), CustomHeaders.EXPECTED_REPLIES_COUNT).ifPresent(headerValue -> headers.put(CustomHeaders.EXPECTED_REPLIES_COUNT, headerValue));
 
         return MessageBuilder.withPayload(reply)
                 .copyHeaders(headers)
